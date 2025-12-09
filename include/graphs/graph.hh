@@ -31,9 +31,10 @@ class Graph final {
       in_deg_.emplace(v, 0);
     }
 
-    auto [it, ins] = adj_list_.emplace(v, adj);
+    auto [it, ins] =
+        adj_list_.emplace(v, adj.empty() ? std::vector<T>{end_} : adj);
     if (!ins) {
-      if (it->second == std::vector<T>{end_}) {
+      if (it->second == std::vector<T>{end_} && !adj.empty()) {
         it->second = adj;
       } else {
         return false;
