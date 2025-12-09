@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.14)
 project(graphs)
 
 find_package(Boost REQUIRED)
+find_package(GTest REQUIRED)
 
 include(CTest)
+include(GoogleTest)
 
 add_library(graphs INTERFACE)
 target_include_directories(graphs INTERFACE include)

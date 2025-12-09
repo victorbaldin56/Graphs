@@ -35,28 +35,8 @@ int main(int argc, char** argv) try {
     return 0;
   }
 
-  graph::Graph<std::string> g("Start", "End");
-
-  std::string line;
-  while (std::getline(std::cin, line)) {
-    if (line.empty()) {
-      break;
-    }
-
-    std::istringstream ss(line);
-    std::string u;
-    ss >> u;
-
-    std::vector<std::string> adj;
-    std::string v;
-    while (ss >> v) {
-      adj.push_back(v);
-    }
-
-    g.insert(u, adj);
-  }
-
-  g.dump();
+  auto g = graph::readGraph<std::size_t>(std::cin);
+  g.dump(std::cout);
   return 0;
 } catch (std::exception& e) {
   std::cerr << e.what() << std::endl;

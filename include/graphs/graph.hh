@@ -2,8 +2,7 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
-#include <filesystem>
-#include <format>
+#include <queue>
 #include <unordered_map>
 #include <vector>
 
@@ -11,139 +10,145 @@ namespace graph {
 
 template <typename T>
 class Graph final {
-  enum class VertexColor {
-    kWhite,
-    kGrey,
-    kBlack,
-  };
-
  public:
-  Graph(const T& start = T(), const T& end = T())
-      : start_(start),
-        end_(end),
-        adj_list_{{start, std::vector<T>{}}, {end_, std::vector<T>{}}} {}
+  using AdjMap = std::unordered_map<T, std::vector<T>>;
+
+  Graph() noexcept = default;
+
+  Graph(
+      std::initializer_list<std::pair<T, std::initializer_list<T>>> adj_list) {
+    for (const auto& [v, a] : adj_list) {
+      insert(v, std::vector(a));
+    }
+  }
 
   bool insert(const T& v, const std::vector<T>& adj) {
+    auto it = adj_list_.find(v);
+    if (it != adj_list_.end()) {
+      return false;
+    }
+
     for (const auto& a : adj) {
       auto it = adj_list_.find(a);
-      if (it == adj_list_.end()) {
-        adj_list_.emplace(
-            a, std::vector<T>{end_});  // speculatively mark as end node
-      }
       ++in_deg_[a];
+      out_deg_.emplace(a, 0);
     }
 
-    if (in_deg_.find(v) == in_deg_.end()) {
-      in_deg_.emplace(v, 0);
-    }
-
-    auto [it, ins] =
-        adj_list_.emplace(v, adj.empty() ? std::vector<T>{end_} : adj);
-    if (!ins) {
-      if (it->second == std::vector<T>{end_} && !adj.empty()) {
-        it->second = adj;
-      } else {
-        return false;
-      }
-    }
-
-    linkToStart();
+    in_deg_.emplace(v, 0);
+    out_deg_[v] = adj.size();
+    adj_list_.emplace(v, adj);
     return true;
   }
 
   std::vector<T> topologicalSort() const {
-    std::vector<T> result;
+    std::vector<T> order;
+    std::queue<T> q;
 
-    std::unordered_map<T, VertexColor> colors;
-    for (const auto& [v, _] : adj_list_) {
-      colors.emplace(v, VertexColor::kWhite);
-    }
-    auto post_order_func = [&result](T node) { result.push_back(node); };
-
-    for (auto& [v, color] : colors) {
-      if (color == VertexColor::kWhite) {
-        dfs(adj_list_, colors, v, post_order_func);
+    for (auto& [u, cnt] : in_deg_) {
+      if (cnt == 0) {
+        q.push(u);
       }
     }
 
-    std::reverse(std::begin(result), std::end(result));
-    return result;
+    order.reserve(in_deg_.size());
+    auto id = in_deg_;
+
+    while (!q.empty()) {
+      T u = q.front();
+      q.pop();
+
+      order.push_back(u);
+
+      auto it = adj_list_.find(u);
+
+      if (it != adj_list_.end()) {
+        for (auto& v : it->second) {
+          if (--id[v] == 0) {
+            q.push(v);
+          }
+        }
+      }
+    }
+
+    if (order.size() != in_deg_.size()) {
+      throw std::runtime_error("Graph has cycle");
+    }
+    return order;
   }
 
-  void dump() const {
+  void dump(std::ostream& os) const {
     using namespace boost;
 
     using OutGraph = adjacency_list<vecS, vecS, directedS,
                                     property<vertex_name_t, std::string>,
                                     property<edge_name_t, std::string>>;
+
     OutGraph g;
 
+    auto start = add_vertex(g);
+    auto end = add_vertex(g);
+    put(vertex_name, g, start, "Start");
+    put(vertex_name, g, end, "End");
+
     std::unordered_map<T, OutGraph::vertex_descriptor> vd;
-    vd.reserve(adj_list_.size());
-    for (const auto& [v, _] : adj_list_) {
+    vd.reserve(in_deg_.size());
+    for (const auto& [v, _] : in_deg_) {
       auto d = add_vertex(g);
-      put(vertex_name, g, d, v);
+      put(vertex_name, g, d, std::to_string(v));
       vd.emplace(v, d);
     }
 
-    for (auto& [v, adj] : adj_list_) {
+    for (const auto& [v, cnt] : in_deg_) {
+      if (cnt == 0) {
+        add_edge(start, vd[v], g);
+      }
+    }
+
+    for (const auto& [v, cnt] : out_deg_) {
+      if (cnt == 0) {
+        add_edge(vd[v], end, g);
+      }
+    }
+
+    for (const auto& [v, adj] : adj_list_) {
       for (const auto& a : adj) {
         add_edge(vd[v], vd[a], g);
       }
     }
 
-    write_graphviz(std::cout, g, make_label_writer(get(vertex_name, g)));
+    write_graphviz(os, g, make_label_writer(get(vertex_name, g)));
   }
 
  private:
-  T start_;
-  T end_;
-  std::unordered_map<T, std::vector<T>> adj_list_;
-  std::unordered_map<T, std::size_t> in_deg_;
+  AdjMap adj_list_;
 
-  void linkToStart() {
-    auto& start_nodes = adj_list_[start_];
-    start_nodes.clear();
-
-    for (const auto& [v, c] : in_deg_) {
-      if (c == 0) {
-        start_nodes.push_back(v);
-      }
-    }
-  }
-
-  static void dfs(const std::unordered_map<T, std::vector<T>>& graph,
-                  std::unordered_map<T, VertexColor>& color, T node,
-                  const std::function<void(T)>& post_order_func) {
-    std::stack<T> nodes;
-    nodes.push(node);
-
-    while (!nodes.empty()) {
-      auto from = nodes.top();
-
-      if (color[from] == VertexColor::kGrey) {
-        color[from] = VertexColor::kBlack;
-        post_order_func(from);
-        nodes.pop();
-        continue;
-      } else if (color[from] == VertexColor::kBlack) {
-        nodes.pop();
-        continue;
-      }
-
-      color[from] = VertexColor::kGrey;
-      auto adj = graph.at(from);
-
-      for (const auto& a : adj) {
-        const auto& to = a;
-        if (color[to] == VertexColor::kWhite) {
-          nodes.push(to);
-        } else if (color[to] == VertexColor::kGrey) {
-          throw std::runtime_error(
-              "Graph has cycle. Topological sort impossible.");
-        }
-      }
-    }
-  }
+  using DegreeMap = std::unordered_map<T, std::size_t>;
+  DegreeMap in_deg_;
+  DegreeMap out_deg_;
 };
+
+template <typename T>
+inline Graph<T> readGraph(std::istream& is) {
+  graph::Graph<T> g;
+
+  std::string line;
+  while (std::getline(is, line)) {
+    if (line.empty()) {
+      break;
+    }
+
+    std::istringstream ss(line);
+    T u;
+    ss >> u;
+
+    std::vector<T> adj;
+    T v;
+    while (ss >> v) {
+      adj.push_back(v);
+    }
+    g.insert(u, adj);
+  }
+
+  return g;
+}
 }  // namespace graph
