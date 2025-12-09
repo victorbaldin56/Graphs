@@ -4,7 +4,7 @@ import subprocess
 import glob
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-PATH_TO_INPUT = [CURRENT_PATH + '/in/']
+PATH_TO_INPUT = os.path.join(CURRENT_PATH, "in")
 
 
 def get_dot_file_path(input_path):
@@ -45,7 +45,7 @@ def test(executable):
     raise RuntimeError("End-to-end test failed\n")
 
 
-if __name__ == "main":
+if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--executable', help='Executable to test')
   args = parser.parse_args()

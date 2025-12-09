@@ -12,13 +12,27 @@ namespace graph {
 template <typename T>
 class Graph final {
  public:
+  Graph(const T& start = T(), const T& end = T())
+      : end_(end), adj_list_{{end_, std::vector<T>{}}} {}
+
   bool insert(const T& v, const std::vector<T>& adj) {
-    vertices_.insert(v);
     for (const auto& a : adj) {
-      vertices_.insert(a);
+      auto it = adj_list_.find(a);
+      if (it == adj_list_.end()) {
+        adj_list_.emplace(
+            a, std::vector<T>{end_});  // speculatively mark as end node
+      }
     }
 
-    return adj_list_.emplace(v, adj).second;
+    auto [it, ins] = adj_list_.emplace(v, adj);
+    if (!ins) {
+      if (it->second == std::vector<T>{end_}) {
+        it->second = adj;
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 
   void dump() const {
@@ -31,7 +45,7 @@ class Graph final {
 
     std::unordered_map<T, OutGraph::vertex_descriptor> vd;
     vd.reserve(adj_list_.size());
-    for (const auto& v : vertices_) {
+    for (const auto& [v, _] : adj_list_) {
       auto d = add_vertex(g);
       put(vertex_name, g, d, v);
       vd.emplace(v, d);
@@ -47,7 +61,7 @@ class Graph final {
   }
 
  private:
+  T end_;
   std::unordered_map<T, std::vector<T>> adj_list_;
-  std::unordered_set<T> vertices_;
 };
 }  // namespace graph

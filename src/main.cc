@@ -35,7 +35,7 @@ int main(int argc, char** argv) try {
     return 0;
   }
 
-  graph::Graph<std::size_t> g;
+  graph::Graph<std::string> g("Start", "End");
 
   std::string line;
   while (std::getline(std::cin, line)) {
@@ -44,11 +44,11 @@ int main(int argc, char** argv) try {
     }
 
     std::istringstream ss(line);
-    std::size_t u;
+    std::string u;
     ss >> u;
 
-    std::vector<std::size_t> adj;
-    std::size_t v;
+    std::vector<std::string> adj;
+    std::string v;
     while (ss >> v) {
       adj.push_back(v);
     }
