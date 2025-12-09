@@ -18,7 +18,7 @@ class Graph final {
       vertices_.insert(a);
     }
 
-    return adj_list_.insert({v, adj}).second;
+    return adj_list_.emplace(v, adj).second;
   }
 
   void dump() const {
@@ -33,8 +33,8 @@ class Graph final {
     vd.reserve(adj_list_.size());
     for (const auto& v : vertices_) {
       auto d = add_vertex(g);
-      put(vertex_name, g, d, std::to_string(v));
-      vd.insert({v, d});
+      put(vertex_name, g, d, v);
+      vd.emplace(v, d);
     }
 
     for (auto& [v, adj] : adj_list_) {
