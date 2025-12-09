@@ -11,6 +11,12 @@ namespace graph {
 
 template <typename T>
 class Graph final {
+  enum class VertexColor {
+    kWhite,
+    kGrey,
+    kBlack,
+  };
+
  public:
   Graph(const T& start = T(), const T& end = T())
       : start_(start),
@@ -43,6 +49,25 @@ class Graph final {
 
     linkToStart();
     return true;
+  }
+
+  std::vector<T> topologicalSort() const {
+    std::vector<T> result;
+
+    std::unordered_map<T, VertexColor> colors;
+    for (const auto& [v, _] : adj_list_) {
+      colors.emplace(v, VertexColor::kWhite);
+    }
+    auto post_order_func = [&result](T node) { result.push_back(node); };
+
+    for (auto& [v, color] : colors) {
+      if (color == VertexColor::kWhite) {
+        dfs(adj_list_, colors, v, post_order_func);
+      }
+    }
+
+    std::reverse(std::begin(result), std::end(result));
+    return result;
   }
 
   void dump() const {
@@ -83,6 +108,40 @@ class Graph final {
     for (const auto& [v, c] : in_deg_) {
       if (c == 0) {
         start_nodes.push_back(v);
+      }
+    }
+  }
+
+  static void dfs(const std::unordered_map<T, std::vector<T>>& graph,
+                  std::unordered_map<T, VertexColor>& color, T node,
+                  const std::function<void(T)>& post_order_func) {
+    std::stack<T> nodes;
+    nodes.push(node);
+
+    while (!nodes.empty()) {
+      auto from = nodes.top();
+
+      if (color[from] == VertexColor::kGrey) {
+        color[from] = VertexColor::kBlack;
+        post_order_func(from);
+        nodes.pop();
+        continue;
+      } else if (color[from] == VertexColor::kBlack) {
+        nodes.pop();
+        continue;
+      }
+
+      color[from] = VertexColor::kGrey;
+      auto adj = graph.at(from);
+
+      for (const auto& a : adj) {
+        const auto& to = a;
+        if (color[to] == VertexColor::kWhite) {
+          nodes.push(to);
+        } else if (color[to] == VertexColor::kGrey) {
+          throw std::runtime_error(
+              "Graph has cycle. Topological sort impossible.");
+        }
       }
     }
   }
