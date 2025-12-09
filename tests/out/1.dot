@@ -5,6 +5,7 @@ digraph G {
 3[label=3];
 4[label=5];
 5[label=End];
+6[label=Start];
 0->5 ;
 1->5 ;
 2->0 ;
@@ -12,4 +13,5 @@ digraph G {
 3->2 ;
 3->1 ;
 4->0 ;
+6->3 ;
 }

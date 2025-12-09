@@ -13,7 +13,9 @@ template <typename T>
 class Graph final {
  public:
   Graph(const T& start = T(), const T& end = T())
-      : end_(end), adj_list_{{end_, std::vector<T>{}}} {}
+      : start_(start),
+        end_(end),
+        adj_list_{{start, std::vector<T>{}}, {end_, std::vector<T>{}}} {}
 
   bool insert(const T& v, const std::vector<T>& adj) {
     for (const auto& a : adj) {
@@ -22,6 +24,11 @@ class Graph final {
         adj_list_.emplace(
             a, std::vector<T>{end_});  // speculatively mark as end node
       }
+      ++in_deg_[a];
+    }
+
+    if (in_deg_.find(v) == in_deg_.end()) {
+      in_deg_.emplace(v, 0);
     }
 
     auto [it, ins] = adj_list_.emplace(v, adj);
@@ -32,6 +39,8 @@ class Graph final {
         return false;
       }
     }
+
+    linkToStart();
     return true;
   }
 
@@ -61,7 +70,20 @@ class Graph final {
   }
 
  private:
+  T start_;
   T end_;
   std::unordered_map<T, std::vector<T>> adj_list_;
+  std::unordered_map<T, std::size_t> in_deg_;
+
+  void linkToStart() {
+    auto& start_nodes = adj_list_[start_];
+    start_nodes.clear();
+
+    for (const auto& [v, c] : in_deg_) {
+      if (c == 0) {
+        start_nodes.push_back(v);
+      }
+    }
+  }
 };
 }  // namespace graph
