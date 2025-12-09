@@ -1,0 +1,10 @@
+include(default)
+
+[settings]
+compiler.cppstd=20
+
+[options]
+boost/*:bzip2=False
+boost/*:with_stacktrace_backtrace=False
+boost/*:without_locale=True
+boost/*:without_stacktrace_addr2line=True
