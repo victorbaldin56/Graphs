@@ -1,17 +1,13 @@
-digraph G {
-0[label=Start];
-1[label=End];
-2[label=9];
-3[label=3];
-4[label=2];
-5[label=7];
-6[label=5];
-0->3 ;
-2->1 ;
-3->6 ;
-3->5 ;
-3->4 ;
-4->1 ;
-5->2 ;
-6->2 ;
+digraph {
+label="Graph"
+Start[label="Start"];
+End[label="End"];
+"Start" -> 3;
+9 -> "End";
+2 -> "End";
+7 -> 9;
+5 -> 9;
+3 -> 5;
+3 -> 7;
+3 -> 2;
 }
