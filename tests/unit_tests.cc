@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <boost/range/combine.hpp>
 #include <vector>
 
 #include "graphs/graph.hh"

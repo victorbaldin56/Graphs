@@ -1,0 +1,7 @@
+digraph {
+label="Dominator Tree"
+3 -> 5;
+3 -> 7;
+3 -> 2;
+3 -> 9;
+}
